@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PB — Dan's Arcade</title>
+  <title>PB</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -50,10 +50,10 @@
     header p { margin-top: 10px; font-size: 14px; color: #666; letter-spacing: 2px; text-transform: uppercase; }
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      grid-template-columns: repeat(3, 1fr);
       gap: 24px;
       width: 100%;
-      max-width: 800px;
+      max-width: 960px;
     }
     .card {
       background: #1a1a24;
@@ -75,6 +75,20 @@
     .card-icon { font-size: 44px; line-height: 1; }
     .card-title { font-size: 22px; font-weight: 600; }
     .card-desc { font-size: 14px; color: #888; line-height: 1.6; }
+    .card-tag {
+      display: inline-block;
+      margin-top: 4px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      background: rgba(201, 168, 76, 0.12);
+      color: #c9a84c;
+      border: 1px solid rgba(201, 168, 76, 0.25);
+      align-self: flex-start;
+    }
     footer { margin-top: 56px; font-size: 12px; color: #333; letter-spacing: 1px; }
   </style>
 </head>
@@ -83,27 +97,37 @@
     <a href="index.html" class="active">Home</a>
     <a href="about.html">About</a>
     <a href="pickleball/index.html">Pickleball</a>
+    <a href="pickleball/etiquette.html">Etiquette</a>
   </nav>
 
   <header>
-    <h1>Dan's Arcade</h1>
+    <h1>🏓 Pickleball</h1>
     <p>Some cool apps for Pickleball addicts</p>
   </header>
 
   <div class="grid">
-    <a class="card" href="pickleball/index.html">
-      <div class="card-icon">🏓</div>
-      <div class="card-title">Pickleball</div>
-      <div class="card-desc">Shot trainer and 10 animated drills — dinking, drops, resets, footwork, and more.</div>
+    <a class="card" href="pickleball/trainer.html">
+      <div class="card-icon">🎯</div>
+      <div class="card-title">Shot Trainer</div>
+      <div class="card-desc">Read the court, pick the best shot, and get instant feedback with animated ball trajectories.</div>
+      <span class="card-tag">Interactive</span>
     </a>
 
-    <a class="card" href="about.html">
-      <div class="card-icon">👤</div>
-      <div class="card-title">About</div>
-      <div class="card-desc">Who built this and why.</div>
+    <a class="card" href="pickleball/drills.html">
+      <div class="card-icon">📋</div>
+      <div class="card-title">Drills</div>
+      <div class="card-desc">10 drills covering dinking, drops, resets, and footwork — with animated court diagrams and full instructions.</div>
+      <span class="card-tag">Practice</span>
+    </a>
+
+    <a class="card" href="pickleball/etiquette.html">
+      <div class="card-icon">🤝</div>
+      <div class="card-title">Etiquette</div>
+      <div class="card-desc">Line calls, self-officiating, sportsmanship, and the unwritten rules that make every game better.</div>
+      <span class="card-tag">Guide</span>
     </a>
   </div>
 
-  <footer>PB &mdash; Dan's Arcade</footer>
+  <footer>PB &mdash; Pickleball</footer>
 </body>
 </html>
