@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pickleball Shot Trainer</title>
+<title>Shot Trainer — Pickleball Hub</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏓</text></svg>">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #eee; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 76px 16px 20px; }
@@ -12,6 +13,14 @@
   nav a { color: #c9a84c; text-decoration: none; font-size: 0.95rem; font-weight: 600; letter-spacing: 0.05em; transition: color 0.2s; }
   nav a:hover { color: #ffffff; }
   nav a.active { color: #ffffff; }
+  .nav-toggle { display: none; background: none; border: none; color: #c9a84c; font-size: 1.5rem; cursor: pointer; position: absolute; right: 20px; top: 50%; transform: translateY(-50%); }
+  .nav-links { display: flex; gap: 32px; flex-wrap: wrap; justify-content: center; }
+  @media (max-width: 640px) {
+    nav { flex-direction: column; align-items: flex-start; padding: 14px 20px; gap: 0; position: relative; }
+    .nav-toggle { display: block; }
+    .nav-links { display: none; flex-direction: column; gap: 14px; padding: 14px 0 6px; width: 100%; }
+    .nav-links.open { display: flex; }
+  }
   h1 { font-size: 1.5rem; color: #7dd3fc; margin-bottom: 2px; letter-spacing: 2px; text-transform: uppercase; }
   .subtitle { font-size: 0.78rem; color: #64748b; margin-bottom: 16px; }
 
@@ -88,13 +97,16 @@
 <body>
 
 <nav>
-  <a href="../index.html">Home</a>
-  <a href="../about.html">About</a>
-  <a href="rules.html">Rules</a>
-  <a href="trainer.html" class="active">Training</a>
-  <a href="drills.html">Drills</a>
-  <a href="etiquette.html">Etiquette</a>
-  <a href="helpful-terms.html">Helpful Terms</a>
+  <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+  <div class="nav-links">
+    <a href="../index.html">Home</a>
+    <a href="../about.html">About</a>
+    <a href="rules.html">Rules</a>
+    <a href="trainer.html" class="active">Training</a>
+    <a href="drills.html">Drills</a>
+    <a href="etiquette.html">Etiquette</a>
+    <a href="helpful-terms.html">Helpful Terms</a>
+  </div>
 </nav>
 
 <button class="sound-toggle" id="sound-toggle" onclick="toggleSound()">🔊 Sound ON</button>
@@ -896,5 +908,10 @@ function nextScenario() { playClick(); loadScenario(); }
 loadScenario();
 </script>
   <footer style="margin-top:48px;font-size:12px;color:#333;letter-spacing:1px;text-align:center;">Pickleball &mdash; Shot Trainer<br><span style="color:#666;font-size:12px;letter-spacing:1px;">Content generated with AI assistance &mdash; verify tips with a qualified coach or official USA Pickleball rules.</span></footer>
+  <script>
+    document.querySelector('.nav-toggle').addEventListener('click', () => {
+      document.querySelector('.nav-links').classList.toggle('open');
+    });
+  </script>
 </body>
 </html>
