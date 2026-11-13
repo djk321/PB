@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Round Robin — Pickleball Hub</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏓</text></svg>">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f0f14;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 100px 20px 40px;
+    }
+
+    /* Nav — same as the rest of the Pickleball Hub */
+    nav { position: fixed; top: 0; width: 100%; background: #1a1a24; padding: 16px 40px; display: flex; gap: 32px; justify-content: center; border-bottom: 1px solid #2a2a3a; flex-wrap: wrap; z-index: 100; }
+    nav a { color: #c9a84c; text-decoration: none; font-size: 0.95rem; font-weight: 600; letter-spacing: 0.05em; transition: color 0.2s; }
+    nav a:hover { color: #ffffff; }
+    nav a.active { color: #ffffff; border-bottom: 2px solid #7dd3fc; padding-bottom: 2px; }
+    .nav-toggle { display: none; background: none; border: none; color: #c9a84c; font-size: 1.5rem; cursor: pointer; position: absolute; right: 20px; top: 50%; transform: translateY(-50%); }
+    .nav-links { display: flex; gap: 32px; flex-wrap: wrap; justify-content: center; }
+    @media (max-width: 640px) {
+      nav { flex-direction: column; align-items: flex-start; padding: 14px 20px; gap: 0; position: relative; }
+      .nav-toggle { display: block; }
+      .nav-links { display: none; flex-direction: column; gap: 14px; padding: 14px 0 6px; width: 100%; }
+      .nav-links.open { display: flex; }
+    }
+
+    header { text-align: center; margin-bottom: 32px; }
+    header h1 {
+      font-size: 36px; font-weight: 700;
+      background: linear-gradient(135deg, #e8d5a3, #c9a84c);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    header p { margin-top: 10px; font-size: 13px; color: #666; letter-spacing: 2px; text-transform: uppercase; }
+
+    .wrap { width: 100%; max-width: 820px; display: flex; flex-direction: column; gap: 24px; }
+
+    .card { background: #1a1a24; border: 1px solid #2a2a3a; border-radius: 16px; padding: 24px 26px; }
+    .card h2 { font-size: 15px; letter-spacing: 1px; text-transform: uppercase; color: #c9a84c; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .card h2 .count { font-size: 12px; color: #777; letter-spacing: 0.5px; text-transform: none; font-weight: 500; }
+
+    /* Setup */
+    .opts { display: flex; flex-wrap: wrap; gap: 22px; margin-bottom: 22px; }
+    .opt-group { display: flex; flex-direction: column; gap: 8px; }
+    .opt-label { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: #888; }
+    .seg { display: inline-flex; flex-wrap: wrap; background: #0f0f14; border: 1px solid #2a2a3a; border-radius: 9px; overflow: hidden; }
+    .seg button { background: none; border: none; color: #ccc; padding: 8px 14px; font-size: 13px; cursor: pointer; font-family: inherit; transition: background 0.15s, color 0.15s; }
+    .seg button.active { background: #c9a84c; color: #0f0f14; font-weight: 600; }
+    .mode-help { font-size: 13px; color: #888; line-height: 1.6; margin: -8px 0 20px; }
+
+    .num-input { width: 74px; background: #0f0f14; color: #fff; border: 1px solid #2a2a3a; border-radius: 8px; padding: 8px 10px; font-size: 14px; font-family: inherit; }
+    .num-input:focus { outline: none; border-color: #c9a84c; }
+
+    .players { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+    .player-row { display: flex; align-items: center; gap: 8px; }
+    .player-row .badge {
+      width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 12px; background: rgba(201,168,76,0.15);
+      color: #c9a84c; border: 1px solid rgba(201,168,76,0.3);
+    }
+    input[type="text"] { flex: 1; min-width: 0; background: #0f0f14; color: #fff; border: 1px solid #2a2a3a; border-radius: 8px; padding: 9px 12px; font-size: 15px; font-family: inherit; }
+    input[type="text"]:focus { outline: none; border-color: #c9a84c; }
+    .player-row .del { background: none; border: none; color: #555; font-size: 18px; cursor: pointer; padding: 0 4px; line-height: 1; }
+    .player-row .del:hover { color: #e57373; }
+    .add-row { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+    .small-btn { background: #0f0f14; border: 1px dashed #3a3a4a; color: #c9a84c; border-radius: 8px; padding: 8px 14px; font-size: 13px; cursor: pointer; font-family: inherit; }
+    .small-btn:hover { border-color: #c9a84c; color: #fff; }
+    .setup-msg { font-size: 13px; color: #e57373; margin-top: 14px; min-height: 18px; }
+    .setup-preview { font-size: 13px; color: #8fb98f; margin-top: 14px; line-height: 1.5; }
+
+    .actions { display: flex; gap: 12px; margin-top: 22px; flex-wrap: wrap; }
+    .btn { background: #c9a84c; color: #0f0f14; border: none; border-radius: 9px; padding: 11px 22px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.15s; }
+    .btn:hover { background: #e8c96a; }
+    .btn.ghost { background: transparent; color: #c9a84c; border: 1px solid #3a3a4a; }
+    .btn.ghost:hover { background: #22222e; color: #fff; }
+
+    /* Schedule */
+    #results { display: none; flex-direction: column; gap: 24px; }
+    .rounds { display: flex; flex-direction: column; gap: 18px; }
+    .round { border: 1px solid #2a2a3a; border-radius: 14px; overflow: hidden; }
+    .round.done { border-color: #3a4a3a; }
+    .round-head { background: #22222e; padding: 9px 16px; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: #c9a84c; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .round-head .bye { color: #888; font-weight: 500; letter-spacing: 0.3px; text-transform: none; }
+    .round-head .tick { color: #7bbf7b; margin-left: 6px; }
+    .match { padding: 14px 16px; display: grid; grid-template-columns: 70px 1fr auto 1fr; align-items: center; gap: 12px; border-top: 1px solid #22222e; }
+    .match:first-of-type { border-top: none; }
+    .court { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: #7dd3fc; font-weight: 700; }
+    .team { display: flex; align-items: center; gap: 10px; }
+    .team.right { flex-direction: row-reverse; text-align: right; }
+    .team .names { font-weight: 600; font-size: 15px; line-height: 1.35; }
+    .team .names span { display: block; }
+    .team.win .names { color: #e8d5a3; }
+    .team.win .names span:last-child::after { content: " 🏆"; font-size: 13px; }
+    .team.right.win .names span:last-child::after { content: ""; }
+    .team.right.win .names span:first-child::before { content: "🏆 "; font-size: 13px; }
+    .score { width: 56px; text-align: center; background: #0f0f14; color: #fff; border: 1px solid #2a2a3a; border-radius: 8px; padding: 8px 4px; font-size: 18px; font-weight: 700; font-family: inherit; -moz-appearance: textfield; }
+    .score::-webkit-outer-spin-button, .score::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .score:focus { outline: none; border-color: #c9a84c; }
+    .vs { color: #555; font-size: 13px; text-align: center; }
+    @media (max-width: 600px) {
+      .match { grid-template-columns: 1fr auto 1fr; }
+      .court { grid-column: 1 / -1; }
+      .team { flex-direction: column-reverse; align-items: flex-start; gap: 6px; }
+      .team.right { flex-direction: column-reverse; align-items: flex-end; }
+      .team .names { font-size: 14px; }
+      .card { padding: 20px 16px; }
+    }
+
+    /* Standings */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 10px 10px; text-align: center; border-bottom: 1px solid #2a2a3a; white-space: nowrap; }
+    th { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: #888; font-weight: 600; }
+    td.name-col, th.name-col { text-align: left; font-weight: 600; white-space: normal; }
+    tr.leader td { color: #e8d5a3; }
+    td.wins { font-weight: 700; color: #c9a84c; }
+    td.pos { color: #7bbf7b; }
+    td.neg { color: #e57373; }
+    .rank { color: #777; font-weight: 700; }
+    .note { font-size: 12px; color: #666; margin-top: 12px; line-height: 1.6; }
+
+    .print-head { display: none; }
+    footer { margin-top: 48px; text-align: center; font-size: 12px; color: #888; letter-spacing: 1px; }
+
+    /* ── Print: clean black-on-white court sheet ── */
+    @media print {
+      body { background: #fff; color: #000; padding: 0; display: block; }
+      nav, footer, header, #setupCard, .actions, .note { display: none !important; }
+      .wrap { max-width: 100%; gap: 14px; }
+      .print-head { display: block; text-align: center; margin-bottom: 10px; }
+      .print-head h1 { font-size: 20px; }
+      .print-head .meta { font-size: 12px; color: #444; margin-top: 4px; }
+      .card { padding: 12px 14px; }
+      .card, .round { border: 1px solid #999 !important; background: #fff !important; break-inside: avoid; }
+      .round-head { background: #eee !important; color: #000 !important; }
+      .round-head .bye, .court, .card h2, .card h2 .count, .vs { color: #000 !important; }
+      .team .names, .team.win .names { color: #000 !important; }
+      .score { border: 1px solid #000 !important; background: #fff !important; color: #000 !important; }
+      .match { border-top: 1px solid #ccc !important; }
+      th, td, td.wins, td.pos, td.neg, tr.leader td { color: #000 !important; border-bottom: 1px solid #999 !important; }
+      #results { display: flex !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <button class="nav-toggle" aria-label="Toggle menu">☰</button>
+    <div class="nav-links">
+      <a href="../index.html">Home</a>
+      <a href="../about.html">About</a>
+      <a href="why-pickleball.html">Why Pickleball</a>
+      <a href="rules.html">Rules</a>
+      <a href="trainer.html">Training</a>
+      <a href="drills.html">Drills</a>
+      <a href="etiquette.html">Etiquette</a>
+      <a href="helpful-terms.html">Helpful Terms</a>
+      <a href="coach.html">Ask the Coach</a>
+      <a href="round-robin.html" class="active">Round Robin</a>
+    </div>
+  </nav>
+
+  <header>
+    <h1>🏓 Round Robin</h1>
+    <p>Schedule courts &amp; keep score</p>
+  </header>
+
+  <div class="wrap">
+
+    <div class="print-head">
+      <h1 id="printTitle">Pickleball Round Robin</h1>
+      <div class="meta" id="printMeta"></div>
+    </div>
+
+    <!-- Setup -->
+    <div class="card" id="setupCard">
+      <h2>Setup</h2>
+
+      <div class="opts">
+        <div class="opt-group">
+          <span class="opt-label">Format</span>
+          <div class="seg" id="modeSeg">
+            <button data-v="rotate" class="active">Doubles · rotating partners</button>
+            <button data-v="teams">Doubles · fixed teams</button>
+            <button data-v="singles">Singles</button>
+          </div>
+        </div>
+      </div>
+      <div class="mode-help" id="modeHelp"></div>
+
+      <div class="opts">
+        <div class="opt-group">
+          <span class="opt-label">Courts</span>
+          <input type="number" class="num-input" id="courts" min="1" max="12" value="2">
+        </div>
+        <div class="opt-group" id="roundsGroup">
+          <span class="opt-label">Rounds</span>
+          <input type="number" class="num-input" id="rounds" min="1" max="30" value="7">
+        </div>
+        <div class="opt-group">
+          <span class="opt-label">Games to</span>
+          <div class="seg" id="toSeg">
+            <button data-v="11" class="active">11</button>
+            <button data-v="15">15</button>
+            <button data-v="21">21</button>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="listTitle">Players <span class="count" id="playerCount"></span></h2>
+      <div class="players" id="players"></div>
+      <div class="add-row">
+        <button class="small-btn" id="addBtn">＋ Add player</button>
+        <button class="small-btn" id="pasteBtn">📋 Paste a list</button>
+      </div>
+      <div class="setup-preview" id="preview"></div>
+      <div class="setup-msg" id="setupMsg"></div>
+
+      <div class="actions">
+        <button class="btn" id="startBtn">Generate schedule</button>
+        <button class="btn ghost" id="resetBtn">Clear all</button>
+      </div>
+    </div>
+
+    <!-- Schedule + standings -->
+    <div id="results">
+      <div class="card">
+        <h2>Schedule &amp; Scores <span class="count" id="progress"></span></h2>
+        <div class="rounds" id="roundsHost"></div>
+      </div>
+
+      <div class="card">
+        <h2>Standings</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th class="name-col" id="standHead">Player</th>
+                <th>GP</th><th>W</th><th>L</th><th>PF</th><th>PA</th><th>+/−</th>
+              </tr>
+            </thead>
+            <tbody id="standings"></tbody>
+          </table>
+        </div>
+        <div class="note" id="standNote">
+          Ranked by wins, then point differential (+/−), then points scored. Enter both scores to count a game.
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" id="printBtn">🖨 Print sheet</button>
+        <button class="btn ghost" id="reshuffleBtn">🔀 Reshuffle</button>
+        <button class="btn ghost" id="editBtn">Edit setup</button>
+        <button class="btn ghost" id="newBtn">New round robin</button>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>Pickleball &mdash; Round Robin</footer>
+
+<script>
+(function () {
+  "use strict";
+  var STORE = "pb_rr_v1";
+  var $ = function (id) { return document.getElementById(id); };
+
+  var HELP = {
+    rotate: "Social mixer: partners change every round so everyone plays with (and against) as many different people as possible. Extra players sit out in turn. Needs 4+ players.",
+    teams: "Set partnerships: enter each team (e.g. “Dan & Bob”). Every team plays every other team once. Needs 2+ teams.",
+    singles: "One-on-one: every player plays every other player once. Needs 2+ players."
+  };
+
+  // ── Setup state ──
+  var setup = { mode: "rotate", courts: 2, rounds: 7, to: "11", names: ["", "", "", "", "", "", "", ""] };
+  var state = null; // { mode, courts, to, names[], rounds:[{matches:[{court,a:[],b:[],sa,sb}], bye:[]}] }
+
+  function save() { try { localStorage.setItem(STORE, JSON.stringify({ setup: setup, state: state })); } catch (e) {} }
+  function load() { try { var raw = localStorage.getItem(STORE); if (raw) return JSON.parse(raw); } catch (e) {} return null; }
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function range(n) { var a = []; for (var i = 0; i < n; i++) a.push(i); return a; }
+
+  // ── Segmented controls ──
+  function wireSeg(id, onPick) {
+    var seg = $(id);
+    seg.addEventListener("click", function (e) {
+      var b = e.target.closest("button"); if (!b) return;
+      seg.querySelectorAll("button").forEach(function (x) { x.classList.toggle("active", x === b); });
+      onPick(b.getAttribute("data-v"));
+    });
+  }
+  function setSeg(id, v) { $(id).querySelectorAll("button").forEach(function (x) { x.classList.toggle("active", x.getAttribute("data-v") === v); }); }
+
+  wireSeg("modeSeg", function (v) { readNames(); setup.mode = v; suggestRounds(); renderSetup(); });
+  wireSeg("toSeg", function (v) { setup.to = v; save(); });
+  $("courts").addEventListener("input", function () { setup.courts = clampInt(this.value, 1, 12, 1); updatePreview(); save(); });
+  $("rounds").addEventListener("input", function () { setup.rounds = clampInt(this.value, 1, 30, 1); setup.roundsTouched = true; updatePreview(); save(); });
+
+  function clampInt(v, lo, hi, dflt) { var n = parseInt(v, 10); if (isNaN(n)) return dflt; return Math.max(lo, Math.min(hi, n)); }
+
+  // ── Player list editor ──
+  function readNames() {
+    var inputs = $("players").querySelectorAll("input");
+    setup.names = Array.prototype.map.call(inputs, function (i) { return i.value; });
+  }
+  function filledNames() { return setup.names.map(function (n) { return n.trim(); }).filter(Boolean); }
+
+  function renderSetup() {
+    setSeg("modeSeg", setup.mode);
+    setSeg("toSeg", setup.to);
+    $("modeHelp").textContent = HELP[setup.mode];
+    $("courts").value = setup.courts;
+    $("rounds").value = setup.rounds;
+    $("roundsGroup").style.display = setup.mode === "rotate" ? "" : "none";
+    var isTeams = setup.mode === "teams";
+    $("listTitle").firstChild.nodeValue = isTeams ? "Teams " : "Players ";
+    $("addBtn").textContent = isTeams ? "＋ Add team" : "＋ Add player";
+
+    var host = $("players");
+    host.innerHTML = "";
+    setup.names.forEach(function (n, i) {
+      var row = document.createElement("div");
+      row.className = "player-row";
+      row.innerHTML = '<span class="badge">' + (i + 1) + '</span>' +
+        '<input type="text" maxlength="' + (isTeams ? 40 : 24) + '" placeholder="' + (isTeams ? "Team " + (i + 1) + " (e.g. Dan & Bob)" : "Player " + (i + 1)) + '" value="' + esc(n) + '">' +
+        '<button class="del" title="Remove" aria-label="Remove">×</button>';
+      row.querySelector("input").addEventListener("input", function () { setup.names[i] = this.value; updatePreview(); save(); });
+      row.querySelector("input").addEventListener("keydown", function (e) {
+        if (e.key === "Enter") { e.preventDefault(); var next = host.querySelectorAll("input")[i + 1]; if (next) next.focus(); else { addRow(); } }
+      });
+      row.querySelector(".del").addEventListener("click", function () { readNames(); setup.names.splice(i, 1); renderSetup(); save(); });
+      host.appendChild(row);
+    });
+    updatePreview();
+  }
+  function addRow() {
+    readNames(); setup.names.push(""); renderSetup();
+    var ins = $("players").querySelectorAll("input"); ins[ins.length - 1].focus();
+  }
+  $("addBtn").addEventListener("click", addRow);
+  $("pasteBtn").addEventListener("click", function () {
+    var txt = prompt("Paste names — one per line (or separated by commas):", "");
+    if (!txt) return;
+    // Teams are one per line (a team name may contain a comma); players can be lines or commas
+    var list = txt.split(setup.mode === "teams" ? /\r?\n/ : /\r?\n|,/).map(function (s) { return s.trim(); }).filter(Boolean);
+    readNames();
+    var kept = setup.names.filter(function (n) { return n.trim(); });
+    setup.names = kept.concat(list);
+    suggestRounds();
+    renderSetup(); save();
+  });
+
+  function suggestRounds() {
+    if (setup.roundsTouched) return;
+    var n = filledNames().length || setup.names.length;
+    // Enough rounds that everyone can partner with nearly everyone once
+    setup.rounds = Math.max(3, Math.min(15, n - 1));
+  }
+
+  function updatePreview() {
+    var n = filledNames().length;
+    $("playerCount").textContent = n ? "(" + n + ")" : "";
+    var msg = "";
+    if (setup.mode === "rotate") {
+      if (n >= 4) {
+        var perRound = Math.min(Math.floor(n / 4), setup.courts);
+        var sit = n - perRound * 4;
+        msg = perRound + " court" + (perRound > 1 ? "s" : "") + " in play each round" +
+          (sit ? " · " + sit + " sit" + (sit > 1 ? "" : "s") + " out per round (rotating)" : " · nobody sits out") +
+          " · " + setup.rounds + " rounds.";
+        if (setup.courts > Math.floor(n / 4)) msg += " (Only " + Math.floor(n / 4) + " court" + (Math.floor(n / 4) > 1 ? "s" : "") + " can be filled with " + n + " players.)";
+      }
+    } else if (n >= 2) {
+      var total = n * (n - 1) / 2;
+      var rounds = estimateRounds(n, setup.courts);
+      msg = total + " games · about " + rounds + " rounds on " + setup.courts + " court" + (setup.courts > 1 ? "s" : "") + ".";
+    }
+    $("preview").textContent = msg;
+    $("setupMsg").textContent = "";
+  }
+  function estimateRounds(n, courts) { return circleSchedule(n, courts).length; }
+
+  // ── Scheduling ──
+
+  // Rotating-partner doubles: greedy per round, many random tries, minimise repeat partners/opponents.
+  function rotateSchedule(n, courts, numRounds) {
+    var perRound = Math.min(Math.floor(n / 4), courts);
+    var sitN = n - perRound * 4;
+    var partner = range(n).map(function () { return new Array(n).fill(0); });
+    var opp = range(n).map(function () { return new Array(n).fill(0); });
+    var byes = new Array(n).fill(0);
+    var lastBye = new Array(n).fill(-99);
+    var out = [];
+
+    for (var r = 0; r < numRounds; r++) {
+      // Who sits out: fewest byes first, then longest since last bye, random tiebreak
+      var order = shuffle(range(n)).sort(function (a, b) { return (byes[a] - byes[b]) || (lastBye[a] - lastBye[b]); });
+      var sit = order.slice(0, sitN);
+      var playing = order.slice(sitN);
+      sit.forEach(function (p) { byes[p]++; lastBye[p] = r; });
+
+      var best = null, bestCost = Infinity;
+      for (var t = 0; t < 400; t++) {
+        var pool = shuffle(playing.slice());
+        var matches = [], cost = 0;
+        for (var c = 0; c < perRound; c++) {
+          var q = pool.slice(c * 4, c * 4 + 4);
+          // three ways to split four players into two teams
+          var splits = [[[q[0], q[1]], [q[2], q[3]]], [[q[0], q[2]], [q[1], q[3]]], [[q[0], q[3]], [q[1], q[2]]]];
+          var bs = null, bc = Infinity;
+          splits.forEach(function (s) {
+            var k = matchCost(s[0], s[1], partner, opp);
+            if (k < bc) { bc = k; bs = s; }
+          });
+          matches.push(bs); cost += bc;
+        }
+        if (cost < bestCost) { bestCost = cost; best = matches; if (cost === 0) break; }
+      }
+      best.forEach(function (m) {
+        var A = m[0], B = m[1];
+        partner[A[0]][A[1]]++; partner[A[1]][A[0]]++;
+        partner[B[0]][B[1]]++; partner[B[1]][B[0]]++;
+        A.forEach(function (a) { B.forEach(function (b) { opp[a][b]++; opp[b][a]++; }); });
+      });
+      out.push({
+        matches: best.map(function (m, i) { return { court: i + 1, a: m[0], b: m[1], sa: "", sb: "" }; }),
+        bye: sit.sort(function (a, b) { return a - b; })
+      });
+    }
+    return out;
+  }
+  function matchCost(A, B, partner, opp) {
+    var c = 0;
+    // repeat partners are the thing people notice most — weigh heavily
+    c += Math.pow(partner[A[0]][A[1]], 2) * 10 + Math.pow(partner[B[0]][B[1]], 2) * 10;
+    A.forEach(function (a) { B.forEach(function (b) { c += Math.pow(opp[a][b], 2); }); });
+    return c;
+  }
+
+  // Every unit (player or fixed team) plays every other once — circle method, then pack onto courts.
+  function circleSchedule(n, courts) {
+    var ids = range(n);
+    if (n % 2) ids.push(-1); // ghost = bye
+    var m = ids.length, pairsByRound = [];
+    for (var r = 0; r < m - 1; r++) {
+      var pairs = [];
+      for (var i = 0; i < m / 2; i++) {
+        var x = ids[i], y = ids[m - 1 - i];
+        if (x !== -1 && y !== -1) pairs.push(r % 2 ? [y, x] : [x, y]);
+      }
+      pairsByRound.push(pairs);
+      ids.splice(1, 0, ids.pop()); // rotate all but the first
+    }
+    // Pack each circle-round onto the available courts (split into waves if not enough courts)
+    var out = [];
+    pairsByRound.forEach(function (pairs) {
+      for (var k = 0; k < pairs.length; k += courts) {
+        var chunk = pairs.slice(k, k + courts);
+        var inPlay = {};
+        chunk.forEach(function (p) { inPlay[p[0]] = inPlay[p[1]] = 1; });
+        out.push({
+          matches: chunk.map(function (p, i) { return { court: i + 1, a: [p[0]], b: [p[1]], sa: "", sb: "" }; }),
+          bye: range(n).filter(function (i) { return !inPlay[i]; })
+        });
+      }
+    });
+    return out;
+  }
+
+  function generate() {
+    readNames();
+    var names = filledNames();
+    var n = names.length;
+    if (setup.mode === "rotate" && n < 4) { $("setupMsg").textContent = "Rotating doubles needs at least 4 players."; return; }
+    if (setup.mode !== "rotate" && n < 2) { $("setupMsg").textContent = "Enter at least 2 " + (setup.mode === "teams" ? "teams." : "players."); return; }
+    var dupes = names.filter(function (x, i) { return names.findIndex(function (y) { return y.toLowerCase() === x.toLowerCase(); }) !== i; });
+    if (dupes.length) { $("setupMsg").textContent = "Duplicate name: " + dupes[0] + " — add a last initial to tell them apart."; return; }
+
+    if (state && state.rounds.some(function (r) { return r.matches.some(function (m) { return m.sa !== "" || m.sb !== ""; }); })) {
+      if (!confirm("Generating a new schedule clears the scores already entered. Continue?")) return;
+    }
+    var rounds = setup.mode === "rotate"
+      ? rotateSchedule(n, setup.courts, setup.rounds)
+      : circleSchedule(n, setup.courts);
+    state = { mode: setup.mode, courts: setup.courts, to: setup.to, names: names, rounds: rounds, made: new Date().toISOString() };
+    save();
+    render();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // ── Results rendering ──
+  function teamNames(ids) { return ids.map(function (i) { return '<span>' + esc(state.names[i]) + '</span>'; }).join(""); }
+  function winner(m) {
+    if (m.sa === "" || m.sb === "") return null;
+    var a = +m.sa, b = +m.sb;
+    if (a === b) return null;
+    return a > b ? "a" : "b";
+  }
+
+  function renderRounds() {
+    var host = $("roundsHost");
+    host.innerHTML = "";
+    state.rounds.forEach(function (rd, ri) {
+      var done = rd.matches.every(winner);
+      var div = document.createElement("div");
+      div.className = "round" + (done ? " done" : "");
+      var byeTxt = rd.bye.length ? (state.mode === "teams" ? "Bye: " : "Sitting out: ") + rd.bye.map(function (i) { return esc(state.names[i]); }).join(", ") : "";
+      var html = '<div class="round-head"><span>Round ' + (ri + 1) + (done ? '<span class="tick">✓</span>' : '') + '</span><span class="bye">' + byeTxt + '</span></div>';
+      rd.matches.forEach(function (m, mi) {
+        var w = winner(m);
+        html += '<div class="match">' +
+          '<div class="court">Court ' + m.court + '</div>' +
+          '<div class="team' + (w === "a" ? " win" : "") + '"><div class="names">' + teamNames(m.a) + '</div>' +
+            '<input class="score" type="number" inputmode="numeric" min="0" max="99" data-r="' + ri + '" data-m="' + mi + '" data-s="sa" value="' + esc(m.sa) + '" aria-label="Score"></div>' +
+          '<div class="vs">vs</div>' +
+          '<div class="team right' + (w === "b" ? " win" : "") + '"><div class="names">' + teamNames(m.b) + '</div>' +
+            '<input class="score" type="number" inputmode="numeric" min="0" max="99" data-r="' + ri + '" data-m="' + mi + '" data-s="sb" value="' + esc(m.sb) + '" aria-label="Score"></div>' +
+          '</div>';
+      });
+      div.innerHTML = html;
+      host.appendChild(div);
+    });
+
+    host.querySelectorAll(".score").forEach(function (inp) {
+      inp.addEventListener("change", function () {
+        var v = inp.value === "" ? "" : String(clampInt(inp.value, 0, 99, 0));
+        var m = state.rounds[+inp.dataset.r].matches[+inp.dataset.m];
+        m[inp.dataset.s] = v;
+        save();
+        var y = window.scrollY;
+        render();
+        window.scrollTo(0, y);
+      });
+      inp.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") { e.preventDefault(); var all = Array.prototype.slice.call(host.querySelectorAll(".score")); var nx = all[all.indexOf(inp) + 1]; inp.blur(); if (nx) { var r = nx.dataset.r, mm = nx.dataset.m, s = nx.dataset.s; setTimeout(function () { var el = host.querySelector('.score[data-r="' + r + '"][data-m="' + mm + '"][data-s="' + s + '"]'); if (el) el.focus(); }, 0); } }
+      });
+    });
+
+    var total = 0, played = 0;
+    state.rounds.forEach(function (rd) { rd.matches.forEach(function (m) { total++; if (winner(m)) played++; }); });
+    $("progress").textContent = played + " of " + total + " games scored";
+  }
+
+  function computeStandings() {
+    var st = state.names.map(function (n, i) { return { i: i, name: n, gp: 0, w: 0, l: 0, pf: 0, pa: 0 }; });
+    state.rounds.forEach(function (rd) {
+      rd.matches.forEach(function (m) {
+        var w = winner(m); if (!w) return;
+        var a = +m.sa, b = +m.sb;
+        m.a.forEach(function (p) { var s = st[p]; s.gp++; s.pf += a; s.pa += b; if (w === "a") s.w++; else s.l++; });
+        m.b.forEach(function (p) { var s = st[p]; s.gp++; s.pf += b; s.pa += a; if (w === "b") s.w++; else s.l++; });
+      });
+    });
+    st.sort(function (x, y) {
+      return (y.w - x.w) || ((y.pf - y.pa) - (x.pf - x.pa)) || (y.pf - x.pf) || x.name.localeCompare(y.name);
+    });
+    return st;
+  }
+
+  function renderStandings() {
+    var st = computeStandings(), body = $("standings");
+    $("standHead").textContent = state.mode === "teams" ? "Team" : "Player";
+    body.innerHTML = "";
+    var prevKey = null, rank = 0;
+    st.forEach(function (r, i) {
+      var diff = r.pf - r.pa;
+      var key = r.w + "|" + diff + "|" + r.pf;
+      if (key !== prevKey) rank = i + 1;
+      prevKey = key;
+      var tr = document.createElement("tr");
+      if (rank === 1 && r.gp > 0) tr.className = "leader";
+      tr.innerHTML =
+        '<td class="rank">' + rank + '</td>' +
+        '<td class="name-col">' + esc(r.name) + '</td>' +
+        '<td>' + r.gp + '</td>' +
+        '<td class="wins">' + r.w + '</td>' +
+        '<td>' + r.l + '</td>' +
+        '<td>' + r.pf + '</td>' +
+        '<td>' + r.pa + '</td>' +
+        '<td class="' + (diff > 0 ? "pos" : diff < 0 ? "neg" : "") + '">' + (diff > 0 ? "+" : "") + diff + '</td>';
+      body.appendChild(tr);
+    });
+    var note = "Ranked by wins, then point differential (+/−), then points scored. Enter both scores to count a game. Games to " + state.to + ", win by 2.";
+    if (state.mode === "rotate") {
+      var gps = st.map(function (r) { return r.gp; });
+      note += " With rotating partners each player is credited with their team’s result.";
+      var sched = scheduledGames();
+      if (Math.max.apply(null, sched) !== Math.min.apply(null, sched)) note += " Some players are scheduled for one more game than others (because of sit-outs) — compare win % if that matters.";
+    }
+    $("standNote").textContent = note;
+  }
+  function scheduledGames() {
+    var c = new Array(state.names.length).fill(0);
+    state.rounds.forEach(function (rd) { rd.matches.forEach(function (m) { m.a.concat(m.b).forEach(function (p) { c[p]++; }); }); });
+    return c;
+  }
+
+  var MODE_LABEL = { rotate: "Doubles · rotating partners", teams: "Doubles · fixed teams", singles: "Singles" };
+  function render() {
+    if (!state) { $("setupCard").style.display = ""; $("results").style.display = "none"; return; }
+    $("setupCard").style.display = "none";
+    $("results").style.display = "flex";
+    var d = new Date(state.made || Date.now());
+    $("printMeta").textContent = MODE_LABEL[state.mode] + "  ·  " + state.names.length + (state.mode === "teams" ? " teams" : " players") +
+      "  ·  " + state.courts + " court" + (state.courts > 1 ? "s" : "") + "  ·  games to " + state.to + "  ·  " + d.toLocaleDateString();
+    renderRounds();
+    renderStandings();
+  }
+
+  // ── Buttons ──
+  $("startBtn").addEventListener("click", generate);
+  $("resetBtn").addEventListener("click", function () {
+    if (!confirm("Clear all names and settings?")) return;
+    setup = { mode: setup.mode, courts: 2, rounds: 7, to: "11", names: ["", "", "", "", "", "", "", ""] };
+    if (setup.mode === "teams") setup.names = ["", "", "", ""];
+    state = null; save(); renderSetup(); render();
+  });
+  $("printBtn").addEventListener("click", function () { window.print(); });
+  $("reshuffleBtn").addEventListener("click", function () {
+    if (!state) return;
+    var scored = state.rounds.some(function (r) { return r.matches.some(function (m) { return m.sa !== "" || m.sb !== ""; }); });
+    if (scored && !confirm("Reshuffling makes a brand-new schedule and clears all scores. Continue?")) return;
+    var n = state.names.length;
+    if (state.mode === "rotate") state.rounds = rotateSchedule(n, state.courts, state.rounds.length);
+    else {
+      // shuffle who plays whom in which order by permuting player ids
+      var perm = shuffle(range(n));
+      state.rounds = circleSchedule(n, state.courts).map(function (rd) {
+        return { matches: rd.matches.map(function (m) { return { court: m.court, a: m.a.map(function (x) { return perm[x]; }), b: m.b.map(function (x) { return perm[x]; }), sa: "", sb: "" }; }),
+                 bye: rd.bye.map(function (x) { return perm[x]; }).sort(function (a, b) { return a - b; }) };
+      });
+    }
+    save(); render();
+  });
+  $("editBtn").addEventListener("click", function () {
+    setup.mode = state.mode; setup.courts = state.courts; setup.to = state.to;
+    setup.names = state.names.slice();
+    if (state.mode === "rotate") setup.rounds = state.rounds.length;
+    $("setupCard").style.display = ""; $("results").style.display = "none";
+    renderSetup();
+    $("setupMsg").textContent = "";
+    $("preview").textContent += " Generating again builds a new schedule.";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+  $("newBtn").addEventListener("click", function () {
+    if (!confirm("Start a new round robin? This clears the current schedule and scores (names are kept).")) return;
+    setup.names = state.names.slice();
+    state = null; save(); renderSetup(); render();
+  });
+
+  document.querySelector(".nav-toggle").addEventListener("click", function () {
+    document.querySelector(".nav-links").classList.toggle("open");
+  });
+
+  // ── Restore ──
+  var saved = load();
+  if (saved && saved.setup) { setup = saved.setup; if (!setup.names || !setup.names.length) setup.names = ["", "", "", ""]; }
+  if (saved && saved.state && saved.state.rounds) state = saved.state;
+  renderSetup();
+  render();
+})();
+</script>
+</body>
+</html>
